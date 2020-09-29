@@ -1,318 +1,113 @@
-= Committee I.
+= Committee II.
 :toc:
 :note-caption: :information_source:
 :warning-caption: :warning:
 
 == Zadání úkolu
 
-Vaším úkolem za 5 bodů je vytvořit command line aplikaci pracující s GitHub API,
-pomocí knihoven http://docs.python-requests.org[requests] a
-http://click.pocoo.org[click].
+Vaším úkolem za 5 bodů je rozšířit CLI  aplikaci z minulé úlohy o webové rozhraní.
+Stávající funkcionalita ale musí být zachována, mimo původní aplikace půjde tedy
+navíc spustit web server a to pomocí `flask run`.
 
-Aplikace slouží ke kontrole commitů na GitHub podle nastavených pravidel.
-Například: pokud commit message obsahuje zvolená (nevhodná) slova, tak je označen
-jako chybný; podobně například pokud commit obsahuje příliš mnoho změn, nebo
-odstraňuje důležitý souboru jako je třeba README nebo LICENSE.
+Výslednou aplikaci nasaďte na https://www.pythonanywhere.com[PythonAnywhere],
+nebo jiný veřejný https://www.python.org/dev/peps/pep-3333/[WSGI] hosting.
+Odkaz na běžící aplikaci a repozitář nám pošlete e-mailem.
 
-== Konfigurace
+Vytvořte si repozitář `committee-web-test`, nastavte aplikaci, aby pracovala s tímto
+repozitářem, a pozvěte nás (@hroncok, @MarekSuchanek) do něj, abychom mohli chování
+vyzkoušet commitováním.
 
-Aplikace používá konfigurační soubor napsané ve formátu pro
-https://docs.python.org/3/library/configparser.html[configparser].
-Obsahuje jak token pro komunikaci s GitHub API, tak i nastavení pravidel pro
-kontrolu commitů.
+== Specifikace
 
-committee.cfg
-[source,ini]
-----
-[github]
-token=xxxxxxxxxxxxxxxxxxxxx
+- Aplikace musí přijímat na adrese `/` GitHub webhooky (metoda POST).
+- Aplikace musí správně zpracovat
+https://docs.github.com/en/developers/webhooks-and-events/about-webhooks[webhooky]
+`push` a `ping` ve formátu JSON.
 
-[committee]
-context=My/Committee
+Na `ping` aplikace správně odpoví dle dokumentace.
 
-[rule:polite-message]
-text=Commit message contains dirty words.
-type=message
-match=wordlist:/my/wordlists/dirty.txt
+Na `push` aplikace také správně odpoví dle dokumentace, navíc zpracuje příchozí commity
+obsažené v poli `commits` dle konfiguračního souboru a zadání minulé úlohy. Nově se při
+nastavování commit status pomocí webhooku bude mimo `status`, `context` a `description`
+přidávat také `target_url` (URL, kde aplikace běží - nesmí být zadrátovaná).
 
-[rule:keep-license]
-text=LICENSE should not be removed.
-type=path
-status=removed
-match=plain:LICENSE
+Aplikace musí podporovat zabezpečení pomocí webhook secret (viz dále).
 
-[rule:no-dummy-files]
-text=Some dummy file is added.
-type=path
-status=added
-match=regex:.*dummy.*
+- Aplikace musí poskytovat na adrese `/` informace o nastavení (metoda GET).
 
-[rule:atomic-commits]
-text=The commits is way too big.
-type=stats
-scope=commit
-stat=total
-max=5000
-----
+Na adrese `/` se při požadavku GET bude nacházet jednoduchá HTML stránka,
+ze které bude jasné, jaká pravidla platí, jaký je nastavený kontext a jaký uživatel
+bude akce provádět. Uživatelské jméno se na stránce zobrazí podle použitého tokenu,
+není zadrátované do kódu aplikace nebo šablony. Další obsah stránky je na vás.
 
-- `github.token` (povinný) = token pro veškerou komunikaci s GitHub API
-- `committee.context` (povinný) = kontext pro nastavení Commit Status
+Musíte využít šablonu. Nebudeme hodnotit vzhled stránky, ale využijte HTML pro
+prezentaci informací. Vydumpování Python slovníku do `<pre>` boxu není dostačující.
+Na stránce logicky nesmí být vidět `secret` ani `token`.
 
-== Pravidla pro kontrolu commitů
+=== Spouštění aplikace
 
-Pravidla se v konfiguračním souboru definují jako jednotlivé sekce, jejichž
-název je ve formátu `rule:<název-pravidla>` (například pravidlo v sekci
-`rule:keep-license` má název `keep-license`). Každé pravidlo pak obsahuje
-atributy:
+Aplikace se musí dát spustit z kořenového adresáře repozitáře pomocí příkazu `flask run`
+a to nastavením proměnné prostředí `FLASK_APP` na `committee.py`.
 
-* `text` (povinný) = text popisující porušení pravidla
-* `type` (povinný) = určení typu pravidla, jedna z hodnot: `message`,
-  `path`, `stats`
+[source,console]
+$ export FLASK_APP=committee.py
+$ flask run
 
-Další atributy jsou dle typu pravidla. Dále aplikace s pravidly pracuje v
-abecedním pořadí.
+Zároveň je možné pomocí proměnné prostředí nastavit,
+kde má aplikace hledat konfigurační soubor(y).
 
-=== Pravidlo `message`
+Pomocí proměnné `COMMITTEE_CONFIG` je možné nastavit cestu ke konfiguračnímu souboru.
 
-Pravidlo je aktivní (značí porušení), pokud najde shodu v commit message.
+V konfiguračních souborech hledáte sekce `github`, `committee` a sekce s pravidly `rules`.
+Chyby v konfiguraci se řeší identicky, jako v CLI aplikaci (hlášky a návratový kód).
 
-* `match` (povinný) = nastavení hledání shody
-** `plain:<word>` = vyhledává v commit message zadané slovo jako substring
-** `regex:<pattern>` = shoda s regulárním výrazem (hint: modul
-   https://docs.python.org/3/library/re.html[re])
-** `wordlist:<file>` = vyhledává slova z wordlistu, kde slovo=řádka, shodně jako je to pro `plain` (cesta je
-   absolutní nebo relativní od konfiguračního souboru)
+CLI aplikace z minulého týdne musí stále fungovat a testy z minula musí procházet.
 
-Hledání shody je pro `plain`, `regex` i `wordlist` vždy case insensitive.
+Webová aplikace bude pracovat defaultně s vypnutými `force` a `dry-run`. Dobrovolně můžete navíc
+vyřešit detailní nastavování a zapínání force a dry-run například pomocí proměnných prostředí nebo
+dalších konfiguračních voleb.
 
-=== Pravidlo `path`
+=== Zabezpečení webhooku
 
-Pravidlo je aktivní (značí porušení), pokud najde shodu v cestách souborů
-změněných v rámci commitu.
-
-* `status` (nepovinný) = stav souboru: `modified`, `added`, `removed`, `*`
-  (výchozí, =jakýkoliv stav)
-* `match` (povinný) = nastavení hledání shody (jako pro `message`, akorát
-  vyhledává v názvu souboru)
-
-=== Pravidlo `stats`
-
-Pravidlo je aktivní (značí porušení), pokud daná statistika commitu nebo souboru
-je mimo stanovené meze.
-
-* `scope` (nepovinný) = určení zda pracuje se statistikami celého commitu
-  nebo na úrovni jednotlivých souborů, hodnota `commit` (výchozí) nebo `file`
-* `stat` (povinný) = jaká statistika je využívá
-** pro `scope=commit` jedna z hodnot: `total`, `additions`, `deletions`
-** pro `scope=file` jedna z hodnot: `changes`, `additions`, `deletions`
-* `min` (*) = minimální povolená hodnota (výchozí 0)
-* `max` (*) = maximální povolená hodnota
-
-(*) je povinný alespoň jeden z atributů `min` a `max`
-
-(Poznámka: Pokud `min=max=100`, pak pouze hodnota `100` je "v pořádku".)
-
-== Rozhraní pro příkazovou řádku
-
-Soubor ke spuštění pojmenujte `committee.py`.
-
-Při jeho spuštění s příkazem `--help` očekáváme nápovědu:
+Protože příjímání událostí z internetu může být riskantní,
+nabízí GitHub možnost webhooky zabezpečit proti zneužiti.
+Abyste rozpoznali, že vám událost poslal právě GitHub,
+je ke každému requestu z GitHubu přiložená hlavička `X-Hub-Signature`, např:
 
 [source]
-----
-$ python committee.py --help
-Usage: committee.py [OPTIONS] REPOSLUG
+X-Hub-Signature: sha1=0b861d9a594a4f421cabcdef75d5aefc46df8967
 
-Options:
-  --version                       Show the version and exit.
-  -c, --config FILENAME           Committee configuration file.
-  -a, --author AUTHOR             GitHub login or email address of author for
-                                  checking commits.
+která vám říká,
+že pokud použijete HMAC hexdigest s odpovídající hash funkcí a s klíčem,
+který je uvedený v položce `secret`, na celé tělo requestu
+a vámi spočítaný výsledek se shoduje s tím v hlavičce `X-Hub-Signature`,
+tak tento request přišel z GitHubu, a můžete mu tedy věřit.
 
-  -p, --path PATH                 Only commits containing this file path will
-                                  be checked.
+Více informací a příklad v Ruby je na
+https://developer.github.com/webhooks/securing/[github securing].
 
-  -r, --ref REF                   SHA or branch to check commits from (default
-                                  is the default branch).
+Do konfiguračního souboru (sekce `github`) tedy přidejte položku `secret`.
+Při nastavování webhooku na GitHubu použijte stejný secret jako při nasazování
+aplikace.
 
-  -f, --force                     Check even if commit has already status with
-                                  the same context.
+== Automatické testy
 
-  -o, --output-format [none|commits|rules]
-                                  Verbosity level of the output.  [default:
-                                  commits]
+Testy z minula stále musí procházet.
+Existuje i několik nových testů v souboru `test_web_smoke.py`.
 
-  -d, --dry-run                   No changes will be made on GitHub.
-  --help                          Show this message and exit.
-----
+Pro spuštění pouze nových testů můžete použít:
 
-Argument určující repozitář, pro který se budou commity kontrolovat, se očekává
-ve formátu „reposlug“ (`uživatel/název` případně `organizace/název`). Aplikace
-https://docs.github.com/en/rest/reference/repos#list-commits[projde všechny commity]
-(vyhovující filtrům author, path, ref) v tomto repozitáři a
-https://docs.github.com/en/rest/reference/repos#create-a-commit-status[nastaví status]
-dle výsledku kontroly (viz dále).
+[source,console]
+$ python -m pytest -v -k web tests
 
-(Poznámka: Vše co se očekává od `--help` lze snadno nastavit pomocí knihovny click.)
+Pro nové testy není třeba speciální setup z minula.
 
-=== Přepínače
+WARNING: Testy **netestují hlavní funkcionalitu aplikace**,
+ale pouze přidružené věci, jako importovatelnost,
+přítomnost usernamu na hlavní stránce, ping, ověření „secret“.
+Ujistěte se, že vaše nasazená aplikace funguje, jak má.
 
-`-c, --config FILENAME`::
-  Cesta ke konfiguračnímu souboru popsanému výše.
-
-`-a, --author AUTHOR`::
-  Filtrování commitů na základě jejich autora (v souladu s GitHub API).
-
-`-p, --path PATH`::
-  Filtrování commitů na základě cesty souboru (v souladu s GitHub API).
-
-`-r, --ref REF`::
-  Filtrování commitů na základě SHA nebo jména větve (v souladu s GitHub API).
-
-`-f, --force`::
-  Přepínač (flag) pro povolení přepisování commit status na GitHub. Bez tohoto přepínače
-  se commity, kde je již nastaven status se shodným `context` přeskakují.
-
-`-o, --output-format [none|commits|rules]`::
-  Nastavení formátu výstupu, jedna z hodnot `none`, `commits` (výchozí) a `rules`. Vždy
-  značí "co se vypisuje": `none` = nevypisuje se nic, `commits` = vypisují se commity a
-  jejich výsledky, `rules` = vypisují se commity včetně jednotlivých pravidel a dílčích
-  výsledků.
-
-`-d, --dry-run`::
-  Přepínač (flag) pro běh "nanečisto" = nejsou prováděny žádné změny na GitHubu, tzn.
-  nastavování commit status je přeskakováno. To je jediná změna a ve výstupu se projeví
-  pouze v informaci o aktualizaci commit status (viz dále)
-
-`--version`::
-  Běžný přepínač pro zjištění verze (click).
-
-`--help`::
-  Běžný přepínač pro nápovědu (click).
-
-=== Nastavení Commit Status
-
-Pro každý commit získaný pro zadaný repozitář (dle případně nastavených filtrů `author`,
-`path`, `ref`) aplikace nastaví podle kontroly pravidel odpovídající
-https://docs.github.com/en/rest/reference/repos#statuses[Commit Status]:
-
-* `success` s popisem "No rules are violated by this commit."
-* `failure` s popisem "The commit violates rules: X, Y, Z." (kde `X`, `Y`, `Z` jsou seřazené názvy
-  porušených pravidel tímto commitem)
-
-V obou případech se nastavuje `context` z konfiguračního souboru.
-
-V případě, že není použit přepínač `-f/--force` a současně již má commit status se shodným
-`context`, pak se kontrola zcela přeskakuje. Pokud však `-f/--force` je použit, nový commit
-status přepíše původní existuje-li. K tomuto přepsání stačí poslat POST request dle API
-dokumentace (shodný `context` určí, že dojde k přepsání = nelze mít více commit status se
-stejným `context` u jednoho commitu).
-
-=== Výstup
-
-Výstup se liší dle nastavení přepínače `-o, --output-format`.
-
-Pokud je přepínač nastaven na hodnotu `none`, aplikace nevypisuje nic s výjimkou fatálních chyb
-vypisovaných na standardní chybový výstup a následovaných ukončením aplikace (viz dále) včetně
-chyb způsobených chybějícími povinnými argumenty a přepínači.
-
-V případě hodnoty `commits` se vypisují jednotlivé commity v pořadí, v jakém přijdou z API
-ve formátu:
-
-[source]
-----
-- <SHA>: <MESSAGE>
-  ~> <COMMIT STATUS CHANGE>
-  => <RESULT FOR COMMIT>
-----
-
-S tím, že:
-
-* `<SHA>: <MESSAGE>` je tučně (pomlčka před ale není).
-* `<COMMIT STATUS CHANGE>` může být:
-** `Updating commit status: DRY-RUN` (kde "DRY-RUN" je žlutě) = v případě aktivního `-d/--dry-run`
-** `Updating commit status: OK` (kde "OK" je zeleně) = v případě, že se podařilo nastavit commit status na GitHub
-** `Updating commit status: ERROR` (kde "ERROR" je barvou magenta) = v případě, že nepodařilo nastavit commit status (např. nedostatečná práva, ztráta připojení, ...)
-* Šipka `=>` je tučně
-* `<RESULT FOR COMMIT>` může být:
-** `SKIPPED - This commit already has status with the same context.` (kde "SKIPPED" je žlutě), v tomto případě logicky zcela chybí řádek s `<COMMIT STATUS CHANGE>`.
-** `SUCCESS - No rules are violated by this commit.` (kde "SUCCESS" je zeleně), hláška je shodná jako v Commit Status
-** `FAILURE - The commit violates rules: <RULES>.` (kde "FAILURE" je červeně), hláška je shodná jako v Commit Status
-** `ERROR - Failed to check the commit.` (kde "ERROR" je barvou magenta)
-
-Příklady:
-
-image::screenshots/run_commit.png[Běh s výstupem "commit"]
-
-image::screenshots/skipped.png[Běh s přeskakováním na základě předešlé kontroly]
-
-image::screenshots/dry_run.png[Běh s použitím dry-run a force]
-
-Pokud je nastaveno `rules`, pak do formátu přibudou navíc řádky s pravidly:
-
-[source]
-----
-- <SHA>: <MESSAGE>
-  -> <RULE_NAME>: <RULE_STATUS>
-     - <RULE_TEXT>
-     ...
-  ...
-  ~> <COMMIT STATUS CHANGE>
-  => <RESULT FOR COMMIT>
-----
-
-S tím, že
-
-* `<RULE_NAME>` je jméno pravidla z konfiguračního souboru (např. `keep-license`)
-* `<RULE_STATUS>` může být:
-** `PASS` (zeleně) = pravidlo není aktivní
-** `FAIL` (červeně) = pravidlo je aktivní
-* `<RULE_TEXT>` se zobrazuje pokud je pravidlo aktivní:
-** jediný řádek s `text` z konfigurace, pokud je pravidlo na commit
-** řádky pro soubory ve formátu `<FILENAME>: <TEXT>`
-
-Příklady:
-
-image::screenshots/run_rules1.png[Běh s výstupem "rules"]
-
-image::screenshots/run_rules2.png[Běh s výstupem "rules" - pro soubory]
-
-HINT: Je vhodné oddělit výpisy od logiky aplikace.
-
-=== Chyby
-
-V případě chyby v konfiguračním souboru (chybějící povinné hodnoty,
-hodnoty mimo povolený rozsah, špatný formát, neexistující wordlist,
-chybný regex, ...) použijte `click.BadParameter` s textem
-
-[source]
-Failed to load the configuration!
-
-V případě, že zadaný reposlug není validní (nelze podle jednoho lomítka
-rozdělit na 2 části), zachovejte se stejně:
-
-[source]
-Reposlug "<reposlug>" is not valid!
-
-V případě, že se nepodaří získat seznam commitů pro daný repozitář, a tudíž
-nelze dále pracovat, vypište na standardní chybový výstup následující hlášku
-a skončete s kódem 1:
-
-[source]
-Failed to retrieve commits from repository <reposlug>.
-
-image::screenshots/error_repo404.png[Chyba získání seznamu commitů]
-
-V případě, že se nepodaří získat jednotlivý commit, seznam commit status,
-vypíše se také červené dle popisu výstupů hláška s prefixem `ERROR`. Pokud
-se nepodaří nastavit commit status, opět dle popisu výstupů se  vypíše hláška
-s příznakem `ERROR`. Tyto (barevné) výpisy piště na standardní výstup.
-
-image::screenshots/error_commits.png[Chyba na úrovni jednoho commitu]
-
-HINT: Využijte maximálně možností click pro práci se vstupy a výstupy.
-
-== Testy
+Následuje text z minula, který stále platí:
 
 K úloze existuje sada testů.
 Pro jejich spuštění nainstalujte do virtuálního prostředí balík `pytest`.
@@ -376,12 +171,6 @@ pro získání alespoň adekvátní části bodů.
 
 == Odevzdání úkolu
 
-Vytvořte si repozitář pro projekt *committee*
-(nevytvářejte jeden repozitář pro celý předmět NI-PYT).
-Odkaz na repozitář s aplikací nám pošlete e-mailem.
-Pro odevzdání v repozitáři nastavte tag `v0.1`.
+Odkazy na repozitář a běžící aplikaci nám pošlete e-mailem.
+Pro odevzdání v repozitáři nastavte tag `v0.2`.
 
-Termín odevzdání je u této úlohy mimořádně v pondělí (včetně) za 19 dní,
-termín je tedy shodný s příští úlohou.
-Důrazně však doporučujeme odevzdat ji dříve,
-jelikož další úloha na tuto navazuje a chyb v začátku se špatně zbavuje.

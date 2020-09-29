@@ -1,4 +1,4 @@
-import atexit
+import contextlib
 import datetime
 import os
 import pathlib
@@ -12,6 +12,20 @@ configs_dir = fixtures_dir / 'config'
 templates_dir = fixtures_dir / 'config_templates'
 wordlists_dir = fixtures_dir / 'wordlists'
 run_timestamp = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
+
+
+@contextlib.contextmanager
+def env(**kwargs):
+    original = {key: os.getenv(key) for key in kwargs}
+    os.environ.update({key: str(value) for key, value in kwargs.items()})
+    try:
+        yield
+    finally:
+        for key, value in original.items():
+            if value is None:
+                del os.environ[key]
+            else:
+                os.environ[key] = value
 
 
 def run(line, **kwargs):
