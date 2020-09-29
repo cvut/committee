@@ -354,7 +354,7 @@ vyřadit vás na hodinu z přístupu ke GitHub API.
 Když ladíte ostatní testy, doporučujeme je vypínat pomocí přepínače `-k`:
 
 [source,console]
-$ python -m pytest -v -k "not radioactive" test
+$ python -m pytest -v -k "not radioactive" tests
 
 Testy si můžete zkopírovat k sobě do repozitáře, považujte je za Public Domain.
 Nepřidávejte ale do repozitáře nikdy konfigurační soubory z `tests/fixtures/config`,
