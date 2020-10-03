@@ -40,9 +40,10 @@ def run(line, **kwargs):
 
 def run_ok(*args, **kwargs):
     cp = run(*args, **kwargs)
+    print(cp.stdout, end='')
+    print(cp.stderr, end='', file=sys.stderr)
     assert cp.returncode == 0
     assert not cp.stderr
-    print(cp.stdout)
     return cp
 
 
