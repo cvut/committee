@@ -28,9 +28,14 @@ def env(**kwargs):
                 os.environ[key] = value
 
 
-def run(line, **kwargs):
-    print('$ python committee.py', line)
-    command = [sys.executable, 'committee.py'] + shlex.split(line)
+def run(line, entrypoint, **kwargs):
+    if entrypoint:
+        print('$ committee', line)
+        command = ['committee']
+    else:
+        print('$ python -m committee', line)
+        command = [sys.executable, '-m', 'committee']
+    command = command + shlex.split(line)
     return subprocess.run(command,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE,

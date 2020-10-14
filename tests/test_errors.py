@@ -5,7 +5,7 @@ from helper import run, config
 
 def test_no_reposlug():
     """One may forget to provide reposlug argument"""
-    cp = run('')
+    cp = run('', entrypoint=True)
     assert cp.returncode != 0
     assert not cp.stdout
     assert (
@@ -15,7 +15,7 @@ def test_no_reposlug():
 
 def test_no_config():
     """One may forget to provide configuration file"""
-    cp = run('something/dummy')
+    cp = run('something/dummy', entrypoint=True)
     assert cp.returncode != 0
     assert not cp.stdout
     assert (
