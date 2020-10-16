@@ -28,7 +28,7 @@ def env(**kwargs):
                 os.environ[key] = value
 
 
-def run(line, entrypoint, **kwargs):
+def run(line, entrypoint=False, **kwargs):
     if entrypoint:
         print('$ committee', line)
         command = ['committee']
