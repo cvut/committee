@@ -1,0 +1,102 @@
+{% extends 'layout.html.j2' %}
+
+{% macro github_user_link(user) %}
+    <a href="{{ user.html_url }}" target="_blank">{{ user.login }}</a>
+{% endmacro %}
+
+{% macro github_username_link(username) %}
+    {# might not exist but who knows #}
+    <a href="https://github.com/{{ username }}" target="_blank">{{ username }}</a>
+{% endmacro %}
+
+{% set rule_badges = {'message':'primary', 'path':'success', 'stats':'warning'} %}
+{% set matcher_badges = {'plain':'secondary', 'regex':'info', 'wordlist':'dark'} %}
+
+{% macro matcher_info(matcher) %}
+    {% if matcher.type == 'plain' %}
+        <code>{{ matcher.word }}</code>
+    {% elif matcher.type == 'regex' %}
+        <code>{{ matcher.pattern.pattern }}</code>
+    {% elif matcher.type == 'wordlist' %}
+        <code>{{ matcher.filename }}</code>
+    {% endif %}
+    <span class="badge badge-{{ matcher_badges[matcher.type] }}">{{ matcher.type }}</span>
+{% endmacro %}
+
+{% block body %}
+    <div id="intro">
+        <h2>Introduction</h2>
+
+        <p>This service uses GitHub webhooks to catch pushes and checks on commits according to configured rules. Then it sets <a href="https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/about-status-checks" target="_blank">Commit Status</a>. It is mainly homework for NI-PYT course, but can be actually useful although it consists only of this info page (<code>GET /</code>) and webhook listener (<code>POST /</code>).</p>
+    </div>
+    <div id="labels">
+        <h2>Configuration</h2>
+
+        <p>All actions will be performed via user: <code>{{ github_user_link(user) }}</code></p>
+
+        <h3>Application</h3>
+
+        <dl>
+            <dt>Context</dt>
+            <dd>{{ cfg.context }}</dd>
+            <dt>Target URL</dt>
+            <dd>{{ request.url }}</dd>
+        </dl>
+
+        <h3>Rules</h3>
+
+        <ul>
+            {% for rule in cfg.rules %}
+                <li>
+                    <strong>{{ rule.name }}</strong> <span class="badge badge-{{ rule_badges[rule.type] }}">{{ rule.type }}</span><br>{{ rule.text }}
+                    {% if rule.type == 'message' %}
+                        <ul>
+                            <li>Matcher: {{ matcher_info(rule.matcher) }}</li>
+                        </ul>
+                    {% elif rule.type == 'path' %}
+                        <ul>
+                            <li>Status: <code>{{ rule.status }}</code></li>
+                            <li>Matcher: {{ matcher_info(rule.matcher) }}</li>
+                        </ul>
+                    {% elif rule.type == 'stats' %}
+                        <ul>
+                            <li>Scope: <code>{{ rule.scope }}</code></li>
+                            <li>Stat: <code>{{ rule.scope }}</code></li>
+                            {% if rule.min is not none %}<li>Min: <code>{{ rule.min }}</code></li>{% endif %}
+                            {% if rule.max is not none %}<li>Max: <code>{{ rule.max }}</code></li>{% endif %}
+                        </ul>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div id="usage">
+        <h2>Service usage</h2>
+
+        <p>To manage PRs of your repo by this service you need to know configured <em>webhook secret</em>, then just:</p>
+
+        <ol>
+            <li>Go to your repository settings at GitHub</li>
+            <li>Pick <em>webhooks</em> from left menu</li>
+            <li>Press <em>Add webhook</em></li>
+            <li>Create webhook with configuration below and press <em>Add webhook</em></li>
+        </ol>
+
+        For more information, visit <a href="https://developer.github.com/webhooks/creating/" target="_blank">GitHub documentation</a>.
+
+        <h3>Webhook configuration</h3>
+
+        <dl>
+            <dt>Payload URL</dt>
+            <dd>{{ request.url }}</dd>
+            <dt>Content type</dt>
+            <dd>application/json</dd>
+            <dt>Secret</dt>
+            <dd><em>webhook secret</em> (sorry, cannot be published)</dd>
+            <dt>Which events would you like to trigger this webhook?</dt>
+            <dd>Let me select individual events: <strong>Push</strong></dd>
+            <dt>Active</dt>
+            <dd>Yes</dd>
+        </dl>
+    </div>
+{% endblock %}
