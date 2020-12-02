@@ -9,7 +9,7 @@ def test_no_reposlug():
     assert cp.returncode != 0
     assert not cp.stdout
     assert (
-        'Error: Missing argument \'REPOSLUG\'' in cp.stderr
+        'Error: Missing argument \'REPOSLUG...\'' in cp.stderr
     )
 
 
@@ -63,5 +63,5 @@ def test_invalid_reposlug(reposlug):
     assert cp.returncode != 0
     assert not cp.stdout
     assert (
-        f'Error: Invalid value for \'REPOSLUG\': Reposlug "{reposlug}" is not valid!\n' in cp.stderr
+        f'Error: Invalid value for \'REPOSLUG...\': Reposlug "{reposlug}" is not valid!\n' in cp.stderr
     )

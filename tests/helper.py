@@ -57,8 +57,8 @@ def config(name):
 
 
 try:
-    user = os.environ['GH_USER']
-    token = os.environ['GH_TOKEN']
+    user = os.environ['GH_USER'].strip()
+    token = os.environ['GH_TOKEN'].strip()
 except KeyError:
     raise RuntimeError('You must set GH_USER and GH_TOKEN environ vars')
 else:

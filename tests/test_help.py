@@ -10,7 +10,7 @@ stdout_e = hlp_e.stdout
 
 def test_usage():
     # tip: use cli(prog_name='committee') when calling the click.command function
-    assert stdout_m.startswith('Usage: committee [OPTIONS] REPOSLUG')
+    assert stdout_m.startswith('Usage: committee [OPTIONS] REPOSLUGS...')
 
 
 def test_description():
@@ -64,6 +64,13 @@ def test_config_option():
     for stdout in stdout_m, stdout_e:
         assert re.search(r'-c,\s+--config\s+FILENAME\s+'
                          r'Committee\s+configuration\s+file\.',
+                         stdout)
+
+
+def test_async_option():
+    for stdout in stdout_m, stdout_e:
+        assert re.search(r'--async\s+/\s+--no-async\s+'
+                         r'Use\s+asynchronous\s+mode\.\s+\[default:\s+False\]',
                          stdout)
 
 
