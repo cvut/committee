@@ -1,3 +1,3 @@
 from committee.cli import main
 
-main()
+main(prog_name='committee')

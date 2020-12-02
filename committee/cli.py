@@ -145,7 +145,7 @@ FORMATS = [
 
 
 @click.command(name='committee')
-@click.version_option(version='v0.2')
+@click.version_option(version='v0.3.1')
 @click.argument('reposlug', callback=check_reposlug)
 @click.option('-c', '--config', type=click.File(mode='r'), callback=load_config,
               help='Committee configuration file.', required=True)

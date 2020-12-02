@@ -5,7 +5,7 @@ with open('README.md') as f:
 
 setup(
     name='commmittee',
-    version='0.3',
+    version='0.3.1',
     keywords='github commits status check',
     description='An universal tool for checking commits on GitHub',
     long_description=long_description,
@@ -23,7 +23,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'committee = committee:cli',
+            'committee = committee:main',
         ]
     },
     install_requires=[
