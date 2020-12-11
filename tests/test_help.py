@@ -10,7 +10,7 @@ stdout_e = hlp_e.stdout
 
 def test_usage():
     # tip: use cli(prog_name='committee') when calling the click.command function
-    assert stdout_m.startswith('Usage: committee [OPTIONS] REPOSLUGS...')
+    assert stdout_m.startswith('Usage: committee [OPTIONS] REPOSLUG...')
 
 
 def test_description():
